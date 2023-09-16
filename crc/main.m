@@ -5,7 +5,7 @@
 % Project   : LUT-based CRC implementation
 % Filename  : main
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-16 00:37:35
+% Last Modified : 2023-09-16 16:58:42
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
@@ -16,8 +16,23 @@
 % 2023-09-15	NCT	File Created
 % ----------------------------------------------------------------------------
 clc; clear;
+%------------------------------------------
+%% IOs
+%------------------------------------------
+hdl_din         = '../sim/in/i_samples.txt';
+hdl_cfg         = '../sim/in/hdl_cfg.txt';
+hdl_dout        = '../sim/out/hdl_dout.txt';
+golden_repo     = '../sim/golden/';
+tcl_file        = '../../vivado/06_crc/src/auto_run.tcl';
 
+%------------------------------------------
+%% Libraries
+%------------------------------------------
+addpath(genpath('./../libs'));
+
+%------------------------------------------
 %% FLAGS
+%------------------------------------------
 is_golden_creation          = 0;
 is_hdl_in_creation          = 0;
 is_launch_isim              = 0;
@@ -25,15 +40,15 @@ is_hdl_check                = 0;
 os                          = 'linux';
 XLNX                        = 1;        % Xilnx platform or not
 SIMPLETEST                  = 0;
-%% End Flags
 
-
-
+%------------------------------------------
+%% Main
+%------------------------------------------
 % crcType     = "CRC24A";
 blockLen    = 8;      % 4 bit or 8bit
 dataWidth   = 128;    % 128bit or 512 bit
 % dataLen     = randi(5000);
-A     = 25600-32;
+A     = 4096;
 
 if (A > 3824)
     crcType     = "CRC24A";
@@ -43,16 +58,13 @@ end
 
 dataLen     = A;
 
-hdl_din                     = '../sim/in/i_samples.txt';
-hdl_cfg                     = '../sim/in/hdl_cfg.txt';
-hdl_dout                    = '../sim/out/hdl_dout.txt';
-golden_repo                 = '../sim/golden/';
-tcl_file                    = '../../vivado/06_crc/src/auto_run.tcl';
-
-CRC24A = [1,1,0,0,0,0,1,1,0,0,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1];
-CRC24B = [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1];
-CRC24C = [1,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,0,0,0,1,0,1,1,1];
-CRC16 = [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1];
+%Polynomials and CRC lengths
+CRC24A = [1,1,0,0,0,0,1,1,0,0,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1];   % 24 CRC bits for LDPC transport block size > 3824
+CRC24B = [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1];   % 24 CRC bits for LDPC code block segments
+CRC16  = [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1];                   % 16 CRC bits for LDPC transport block size <= 3824
+CRC24C = [1,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,0,0,0,1,0,1,1,1];   % 24 CRC bits for polar downlink (BCH and DCI)
+CRC6   = [1,1,0,0,0,0,1];                                       % 6 CRC bits for polar uplink, 18<=K<=25
+CRC11  = [1,1,1,0,0,0,1,0,0,0,0,1];                             % 11 CRC bits for polar uplink, K>30
 
 if crcType == "CRC24A"
     G = CRC24A;
@@ -60,9 +72,12 @@ if crcType == "CRC24A"
 elseif crcType == "CRC24B"
     G = CRC24B;
     CRCLen  = 24;
-elseif crcType == "NO"
+elseif crcType == "CRC24C"
     G = CRC24C;
     CRCLen  = 24;
+elseif crcType == "CRC11"
+    G = CRC11;
+    CRCLen = 11;
 else
     G = CRC16;
     CRCLen  = 16;
@@ -95,7 +110,7 @@ hdl_in  = hdl_in';
 
 % Generate for XILINX flatform or not
 % XLNX:    MSB ... LSB     (first bit is LSB)
-% INTEL:    MSB ... LSB     (first bit is MSB)
+% INTEL:   MSB ... LSB     (first bit is MSB)
 if XLNX
     hdl_in  = fliplr(hdl_in);
 end
@@ -103,7 +118,8 @@ end
 hdl_str = join(string(hdl_in), '');
 
 %% MATLAB model CRC LUT-Based
-crcValue    = compute_crc(padded_blk4matlab, size(padded_blk4matlab,1), crcType, dataWidth, blockLen);
+crcValue        = compute_crc(padded_blk4matlab, size(padded_blk4matlab,1), crcType, dataWidth, blockLen);
+crcValueFPGA    = compute_crc_fpga(padded_blk4matlab, size(padded_blk4matlab,1), crcType, dataWidth, blockLen);
 %% End MATLaB model
 
 
@@ -123,7 +139,11 @@ if (~isequal(crcValueGold, crcValue)) & (crcType ~= "NO")
 else 
     fprintf ("MAT: Functional model PASSED\n");
 end
-
+if (~isequal(crcValueGold, crcValueFPGA)) & (crcType ~= "NO")
+   error("MATLAB FPGA model mismatch!!!\n");
+else 
+    fprintf ("MAT: Functional FPGA model PASSED\n");
+end
 
 %% HDL generator
 % 1. HDL input generation

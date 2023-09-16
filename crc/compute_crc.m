@@ -5,17 +5,28 @@
 % Project   : LUT-based CRC implementation
 % Filename  : compute_crc
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-16 00:14:32
+% Last Modified : 2023-09-17 03:13:07
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
-%   Old implementation - applied for Catapult HLS 
+%   Input `data` format:
+%       127 ... ... ... 0
+%    First bit   
+%
+%   Important notes:
+%       - First bit is highest order in the polynomial
+%       - LUT which has higher index has higher polynimial order (based on 
+%         the `gen_lut` algorithm)
+%       - Hence, table LUT mapping
+%           LUT16     LUT15  ...  LUT1      |    Table
+%           127:120                7:0      |    Input to generate LUT's addresses
+%
+% Arguments             
 %   crctype:  24A, 24B, 24C, 16
 %   blockLen: 8 bit, 4 bit - number of bit in one block used to 
 %             compute CRC
 %   dataWidth: 128b or 512b - number of bit to compute CRC in 1 cycle
 %   
-%   Higher Index of LUT(:,:,i) (i is index) = higher order of polynomial
 %
 % HISTORY:
 % Date      	By	Comments
@@ -48,15 +59,21 @@ function [crcValue] = compute_crc(data, data_len, crcType, dataWidth, blockLen)
         blkReshape      = [blkReshape; blockData];
     end
 
-    % LUT-Based Algorithm
-    % Order of LUT input
-    % 1..4          5..8        9..12         13..16 (blockLen = 4)
-    % Highest_LUT                             Lower order
-
     initialValue        = zeros(1, CRCLen);
     currentLineXOR      = initialValue;
 
     for i=1:numLines
+        % In this version, we compute CRC(A) + CRC(B)
+        %       - 1.Compute CRC of previous-iteration CRC
+        %       - 2.Compute first bits of input data
+        %       - 3.XOR 2 values
+        %
+        % In the FPGA-exact version, we compute CRC(A+B)
+        %       - 1. XOR CRC value of previous-iteration and first bits of input data
+        %       - 2. Compute CRC of 1st step result
+        %
+        % They are equivalent
+        
         previousCRC     = initialValue;
         % Compute Previous CRC result
         currentLineReshape  = reshape(currentLineXOR, blockLen, []);
@@ -65,7 +82,7 @@ function [crcValue] = compute_crc(data, data_len, crcType, dataWidth, blockLen)
 
         for z=1:numBlockPerCRC
             addr            = bin2dec(currentLineReshape(z,:))+1;
-            idxLUT          = numBlockPerLine+numBlockPerCRC-z-(numBlockPerCRC-1);       % LUT 16, 15,14
+            idxLUT          = numBlockPerLine-z+1;       % LUT 16, 15,14
 
             blockCRC         = LUT( addr,:,idxLUT);
             previousCRC      = bitxor(previousCRC, blockCRC);
@@ -87,7 +104,6 @@ function [crcValue] = compute_crc(data, data_len, crcType, dataWidth, blockLen)
         % XOR Result
         currentLineXOR  = bitxor(currentBlockXOR, previousCRC);
         
-%         bin2dec(join(string(currentLineXOR), ''))
     end
     crcValue    = currentLineXOR;
 end

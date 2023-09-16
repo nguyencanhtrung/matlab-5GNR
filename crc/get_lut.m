@@ -5,12 +5,12 @@
 % Project   : LUT-based CRC implementation
 % Filename  : get_lut
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-15 15:13:47
+% Last Modified : 2023-09-16 15:35:57
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
-%   Generate all LUTs with predifined configuration
-%   crctype     : "CRC24A", "CRC24B", "CRC24C", "CRC16"
+%   Generate all LUTs using CRC algorithm of MATLAB toolbox
+%   crctype     : "CRC24A", "CRC24B", "CRC24C", "CRC16", "CRC11", "CRC6"
 %   blockLen    : 8 bit, 4 bit - number of bit in one block used to 
 %                 compute CRC
 %   dataWidth   : 128b or 512b - number of bit to compute CRC in 1 cycle
@@ -21,17 +21,17 @@
 % HISTORY:
 % Date      	By	Comments
 % ----------	---	---------------------------------------------------------
+% 2023-09-16	NCT	Update CRC11 and CRC6
 % 2023-09-15	NCT	File created
 % ----------------------------------------------------------------------------
 function [LUT] = get_lut(crcType,blockLen,dataWidth,modelType)
 
-CRC24A = [1,1,0,0,0,0,1,1,0,0,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1];
-CRC24B = [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1];
-CRC24C = [1,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,0,0,0,1,0,1,1,1];
-CRC16  = [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1];
-
-maxValue = 2^blockLen - 1;
-numBlock = dataWidth/blockLen;
+CRC24A = [1,1,0,0,0,0,1,1,0,0,1,0,0,1,1,0,0,1,1,1,1,1,0,1,1];   % 24 CRC bits for LDPC transport block size > 3824
+CRC24B = [1,1,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,0,1,1,0,0,0,1,1];   % 24 CRC bits for LDPC code block segments
+CRC24C = [1,1,0,1,1,0,0,1,0,1,0,1,1,0,0,0,1,0,0,0,1,0,1,1,1];   % 24 CRC bits for polar downlink (BCH and DCI)
+CRC16  = [1,0,0,0,1,0,0,0,0,0,0,1,0,0,0,0,1];                   % 16 CRC bits for LDPC transport block size <= 3824
+CRC6   = [1,1,0,0,0,0,1];                                       % 6 CRC bits for polar uplink, 18<=K<=25
+CRC11  = [1,1,1,0,0,0,1,0,0,0,0,1];                             % 11 CRC bits for polar uplink, K>30
 
 if crcType == "CRC24A"
     G = CRC24A;
@@ -39,11 +39,17 @@ elseif crcType == "CRC24B"
     G = CRC24B;
 elseif crcType == "CRC24C"
     G = CRC24C;
+elseif crcType == "CRC11"
+    G = CRC11;
+elseif crcType == "CRC6"
+    G = CRC6;
 else
     G = CRC16;
 end 
 
 crcLen  = length(G) - 1;
+maxValue = 2^blockLen - 1;
+numBlock = dataWidth/blockLen;
 
 % Matlab model
 crcgenerator = comm.CRCGenerator('Polynomial',G,'InitialConditions',0);
@@ -53,8 +59,7 @@ codeword = 0:1:maxValue;
 codeword = codeword';
 codeword = dec2bin(codeword, blockLen);
 
-% LUT storing CRC value
-% LUT = crc( codeword )
+% LUT storing CRC value | LUT = crc( codeword )
 LUT =[];
 
 for i=1:numBlock
