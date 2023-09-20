@@ -5,7 +5,7 @@
 % Project   : LUT-based CRC implementation
 % Filename  : main
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-16 16:58:42
+% Last Modified : 2023-09-18 15:14:11
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
@@ -16,14 +16,6 @@
 % 2023-09-15	NCT	File Created
 % ----------------------------------------------------------------------------
 clc; clear;
-%------------------------------------------
-%% IOs
-%------------------------------------------
-hdl_din         = '../sim/in/i_samples.txt';
-hdl_cfg         = '../sim/in/hdl_cfg.txt';
-hdl_dout        = '../sim/out/hdl_dout.txt';
-golden_repo     = '../sim/golden/';
-tcl_file        = '../../vivado/06_crc/src/auto_run.tcl';
 
 %------------------------------------------
 %% Libraries
@@ -33,13 +25,13 @@ addpath(genpath('./../libs'));
 %------------------------------------------
 %% FLAGS
 %------------------------------------------
-is_golden_creation          = 0;
-is_hdl_in_creation          = 0;
-is_launch_isim              = 0;
-is_hdl_check                = 0;
-os                          = 'linux';
-XLNX                        = 1;        % Xilnx platform or not
-SIMPLETEST                  = 0;
+is_golden_creation      = 0;
+is_gen_hdl_in           = 0;
+is_launch_isim          = 0;
+is_hdl_check            = 0;
+os                      = 'linux';
+endianess               = 'little';
+SIMPLETEST              = 0;
 
 %------------------------------------------
 %% Main
@@ -50,12 +42,12 @@ dataWidth   = 128;    % 128bit or 512 bit
 % dataLen     = randi(5000);
 A     = 4096;
 
-if (A > 3824)
-    crcType     = "CRC24A";
-else
-    crcType     = "CRC16";
-end
-
+% if (A > 3824)
+%     crcType     = "CRC24A";
+% else
+%     crcType     = "CRC16";
+% end
+crcType     = "CRC24B";
 dataLen     = A;
 
 %Polynomials and CRC lengths
@@ -100,26 +92,17 @@ if SIMPLETEST == 1
     dataLen = size(simInput,2) * dataWidth;
 end
 
-% Create HDL input
-padding             = ceil(dataLen/dataWidth)*dataWidth - dataLen;
-padded_blk4FPGA     = [blk; zeros(padding, 1)];
-padded_blk4matlab   = [zeros(padding, 1); blk];
+% Zeros padding to make sure the data length is a multiple of dataWidth
+% Padding at the beginning of the input stream based on the LUT-based CRC Algorithm
+npad   = ceil(dataLen/dataWidth)*dataWidth - dataLen;
+pblk   = [zeros(npad, 1); blk];
+% hdl_str = join(string(hdl_in), '');
 
-hdl_in  = reshape(padded_blk4FPGA, dataWidth, []);
-hdl_in  = hdl_in';
-
-% Generate for XILINX flatform or not
-% XLNX:    MSB ... LSB     (first bit is LSB)
-% INTEL:   MSB ... LSB     (first bit is MSB)
-if XLNX
-    hdl_in  = fliplr(hdl_in);
-end
-
-hdl_str = join(string(hdl_in), '');
+fprintf('Compute %s - Input length %d \n', crcType, dataLen);
 
 %% MATLAB model CRC LUT-Based
-crcValue        = compute_crc(padded_blk4matlab, size(padded_blk4matlab,1), crcType, dataWidth, blockLen);
-crcValueFPGA    = compute_crc_fpga(padded_blk4matlab, size(padded_blk4matlab,1), crcType, dataWidth, blockLen);
+crcValue        = compute_crc(pblk, size(pblk,1), crcType, dataWidth, blockLen);
+crcValueFPGA    = compute_crc_fpga(pblk, size(pblk,1), crcType, dataWidth, blockLen);
 %% End MATLaB model
 
 
@@ -129,10 +112,11 @@ encode  = crcgenerator(blk);
 crcValueGold = encode(end-CRCLen+1:end,1)';
 
 if crcType ~= "NO"
-    fprintf('CRC value in HEX: 0x%s \n' ,dec2hex(bin2dec(join(string(crcValueGold), ''))));
-    fprintf('CRC value in DEC: %d \n' ,bin2dec(join(string(crcValueGold), '')));
+    fprintf('\tGolden(HEX):\tCRC value - 0x%s \n' ,dec2hex(bin2dec(join(string(crcValueGold), ''))));
+    fprintf('\tGolden(DEC):\tCRC value - %d \n' ,bin2dec(join(string(crcValueGold), '')));
+    fprintf('\tFPGA(HEX): \tCRC value - 0x%s \n' ,dec2hex(bin2dec(join(string(crcValueFPGA), ''))));
 else
-    fprintf('CRC value: ____ \n');   
+    fprintf('\tCRC value: ____ \n');   
 end
 if (~isequal(crcValueGold, crcValue)) & (crcType ~= "NO")
    error("MATLAB model mismatch!!!\n");
@@ -147,15 +131,9 @@ end
 
 %% HDL generator
 % 1. HDL input generation
-if is_hdl_in_creation == 1
+if is_gen_hdl_in
     gen_hdl_in;
-end 
-
-fname_crc_padding_zeros = 'g_crc_padding_zeros.txt';
-fPath_crc_padding_zeros = fullfile(golden_repo, fname_crc_padding_zeros);
-
-fname_crc_result = 'g_crc_result.txt';
-fPath_crc_result = fullfile(golden_repo, fname_crc_result);     
+end  
     
 % 2. Golden generation
 if is_golden_creation == 1

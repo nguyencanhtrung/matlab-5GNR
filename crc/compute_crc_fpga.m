@@ -30,7 +30,7 @@
 % ----------------------------------------------------------------------------
 function [crcValue] = compute_crc_fpga(data, data_len, crcType, dataWidth, blockLen)
 
-    if crcType == "CRC16"
+    if strcmp(crcType,"CRC16")
         CRCLen  = 16;
     else
         CRCLen  = 24;
