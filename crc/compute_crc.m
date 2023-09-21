@@ -5,13 +5,19 @@
 % Project   : LUT-based CRC implementation
 % Filename  : compute_crc
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-17 03:13:07
+% Last Modified : 2023-09-21 12:36:29
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
 %   Input `data` format:
 %       127 ... ... ... 0
 %    First bit   
+%
+%   Algorithm:
+%      This version is computed based on the following algorithm:
+%           CRC(P) where P = A + B
+%           - 1st step: Compute CRC(A) and  CRC(B)
+%           - 2nd step: Compute CRC(P) = CRC(A) + CRC(B) or CRC(P) = CRC(A) xor CRC(B)
 %
 %   Important notes:
 %       - First bit is highest order in the polynomial
@@ -31,6 +37,7 @@
 % HISTORY:
 % Date      	By	Comments
 % ----------	---	---------------------------------------------------------
+% 2023-09-21	NCT	Add description!
 % 2023-09-15	NCT	File created
 % ----------------------------------------------------------------------------
 function [crcValue] = compute_crc(data, data_len, crcType, dataWidth, blockLen)
@@ -63,16 +70,14 @@ function [crcValue] = compute_crc(data, data_len, crcType, dataWidth, blockLen)
     currentLineXOR      = initialValue;
 
     for i=1:numLines
-        % In this version, we compute CRC(A) + CRC(B)
+        % In this version, we compute CRC(A) and CRC(B) then XOR them
         %       - 1.Compute CRC of previous-iteration CRC
         %       - 2.Compute first bits of input data
         %       - 3.XOR 2 values
         %
-        % In the FPGA-exact version, we compute CRC(A+B)
+        % In the FPGA-exact version, we compute A+B or A xor B, then CRC(A+B)
         %       - 1. XOR CRC value of previous-iteration and first bits of input data
         %       - 2. Compute CRC of 1st step result
-        %
-        % They are equivalent
         
         previousCRC     = initialValue;
         % Compute Previous CRC result
