@@ -5,7 +5,7 @@
 % Project   : LUT-based CRC implementation
 % Filename  : get_lut
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-21 12:08:09
+% Last Modified : 2023-09-22 10:31:52
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
@@ -13,24 +13,25 @@
 % 
 %  Input arguments:
 %       crctype     : "CRC24A", "CRC24B", "CRC24C", "CRC16", "CRC11", "CRC6"
-%       blockLen    : 8 bit, 4 bit - number of bit in one block used to 
-%                     compute CRC
+%       blockLen    : 8 bit - number of bit in one block used to compute CRC
 %       dataWidth   : 128b or 512b - number of bit to compute CRC in 1 cycle
 %       modelType   : "FPGA" or not
 %
 %  Algorithm:
-%       `crcgenerator` is MATLAB toolbox CRC generator
+%       This section uses `crcgenerator` which is MATLAB toolbox CRC generator 
+%       to compute CRC checksum of 256 inputs (codeword) in range [0, 255].
+%       The 256 results are stored in one LUT.
 %
-%       Each LUT is a matrix 256x24bits (CRC24A,B,C) or 256x16bits (CRC16)
-%       Each LUT stores 256 checksums (results) of CRC computation of 256 inputs
-% 
-%       Inputs of LUT1:  [0 .. 255]
-%       Inputs of LUT2:  [0 .. 255] << 8
-%       Inputs of LUT3:  [0 .. 255] << 16
+%       There are 16 LUTs (LUT1, LUT2, ..., LUT16).
+%       
+%       LUTs and their 256 inputs
+%       LUT1:  [0 .. 255]
+%       LUT2:  [0 .. 255] << 8
+%       LUT3:  [0 .. 255] << 16
 %       ...  
-%       Inputs of LUT16: [0 .. 255] << 120
+%       LUT16: [0 .. 255] << 120
 %
-%       Higher Index of LUT(:,:,i) (i is index) = higher order of polynomial
+%       Why do we need to compute CRC of such input format?
 %
 %       ---------
 %       Explanation:
@@ -62,7 +63,7 @@
 %           CRC(P) =  LUT16(a0...a7) + LUT15(a8..a15) + ... + LUT1(a120...a127)
 %       ---------
 %
-%       Codeword (input):       | << 15*8 | << 15*8 | ... ... | << 0    |
+%       Codeword (input):       | << 15*8 | << 14*8 | ... ... | << 0    |
 %                                   |          |                   |
 %       CRC generator               v          v                   v
 %                               -----------------------------------------

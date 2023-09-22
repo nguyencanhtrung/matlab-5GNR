@@ -1,10 +1,10 @@
-## Algorithm
+## Look-Up-Table generation
 
-### `crcgenerator` - MATLAB Toolbox CRC Generator
+This section uses `crcgenerator` which is MATLAB toolbox CRC generator to compute CRC checksum of `256 inputs` (codeword) in range `[0, 255]`. The 256 results are stored in one LUT.
 
-Each LUT (Look-Up Table) is a matrix of dimensions 256x24bits (CRC24A, CRC24B, CRC24C) or 256x16bits (CRC16). Each LUT stores 256 checksums (results) of CRC computation for 256 different inputs.
+There are 16 LUTs (LUT1, LUT2, ... LUT16).
 
-#### Inputs for LUTs
+### Inputs for LUTs
 
 - **LUT1**: Inputs range from `[0 .. 255]`
 - **LUT2**: Inputs range from `[0 .. 255] << 8`
@@ -12,36 +12,39 @@ Each LUT (Look-Up Table) is a matrix of dimensions 256x24bits (CRC24A, CRC24B, C
 - ...
 - **LUT16**: Inputs range from `[0 .. 255] << 120`
 
-The higher the index `i` of `LUT(:,:,i)`, the higher the order of the polynomial used for CRC.
+> **Question**: Why do we need to compute CRC of such input format?
 
 ---
 
-### Explanation
+### Detailed Explanation
 
 #### Input Stream
 
-Consider an input stream \( A \) which is a 128-bit vector:  
-\[ A = a_0.a_1.a_2...a_{127} \]  
-where \( a_0 \) is the first bit.
+Consider an input stream `A` as a 128-bit vector:  
+`A = a0.a1.a2...a127`  
+where `a0` is the first bit.
 
-This can be considered as a Polynomial \( P \):  
-\[ P = a_0 \times x^{127} + a_1 \times x^{126} + \ldots + a_{127} \]
+This can be represented as a Polynomial `P`:  
+`P = a0 * x^127 + a1 * x^126 + ... + a127`
 
-#### Compute CRC
+#### CRC Computation
 
-The CRC of \( A \) is the CRC of \( P \):  
-\[ \text{CRC}(A) = \text{CRC}(P) \]
+The CRC of `A` is the CRC of `P`:  
+`CRC(A) = CRC(P)`
 
-And,  
-\[ \text{CRC}(P) = \text{CRC}(a_0 \times x^{127} + \ldots + a_7 \times x^{120}) + \ldots + \text{CRC}(a_{120} \times x^7 + \ldots + a_{127}) \]
+And,
+
+`CRC(P) = CRC(a0 * x^127 + ... + a7 * x^120 + ... + a120 * x^7 + ... + a127)`
+
+`CRC(P) = CRC(a0 * x^127 + ... + a7 * x^120) + ... + CRC(a120 * x^7 + ... + a127)`
 
 Where:  
-- \(\text{CRC}(a_{120} \times x^7 + \ldots + a_{127}) = \text{LUT1}(a_{120}..a_{127})\)
+- `CRC(a120 * x^7 + ... + a127) = CRC( a120..a127 ) =LUT1(a120..a127)`
 - ...
-- \(\text{CRC}(a_0 \times x^{127} + \ldots + a_7 \times x^{120}) = \text{LUT16}(a_0..a_7)\)
+- `CRC(a0 * x^127 + ... + a7 * x^120) = CRC( a0..a7 << 120 ) = LUT16(a0..a7)`
 
 Therefore,  
-\[ \text{CRC}(P) = \text{LUT16}(a_0..a_7) + \text{LUT15}(a_8..a_{15}) + \ldots + \text{LUT1}(a_{120}..a_{127}) \]
+`CRC(P) = LUT16(a0..a7) + LUT15(a8..a15) + ... + LUT1(a120..a127)`
 
 ---
 
@@ -49,18 +52,19 @@ Therefore,
 
 | Codeword (input) | LUT index |
 |------------------|-----------|
-| \( << 15 \times 8 \) | 16 |
-| \( << 15 \times 8 \) | 15 |
-| ... | ... |
-| \( << 0 \) | 1 |
+| `[0..255]<< (15 * 8)`    | 16        |
+| `[0..255]<< (14 * 8)`    | 15        |
+| ...                      | ...       |
+| `[0..255]<< 0`           | 1         |
 
 #### Notes
 
 - **Bit Order of Input for LUT**: The first bit is the MSbit.
-  - **LUT16**: \( a_0..a_7 \) (where \( a_0 \) is the first bit)
-  - **LUT15**: \( a_8..a_{15} \) (where \( a_8 \) is the first bit)
+  - **LUT16**: `a0..a7` (where `a0` is the first bit)
+  - **LUT15**: `a8..a15` (where `a8` is the first bit)
   - ...
-  - **LUT1**: \( a_{120}..a_{127} \) (where \( a_{120} \) is the first bit)
+  - **LUT1**: `a120..a127` (where `a120` is the first bit)
 
 - **Bit Order of Output (Checksum/Result) of CRC Computation**: The first bit is the MSbit.
-  - \( \text{res} = \text{crcgenerator}(a_0..a_7) = c_0..c_{24} \) (where \( c_0 \) is the first bit)
+  - `res = crcgenerator(a0..a7) = c0..c24` (where `c0` is the first bit)
+
