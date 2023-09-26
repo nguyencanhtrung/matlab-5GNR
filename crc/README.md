@@ -1,4 +1,24 @@
-## Look-Up-Table generation
+# Matlab model for LUT-based CRC computation
+
+## Hierarchy
+
+--------------------------------------------------------------------------------------
+| STT  | Files              | Description                                             |
+--------------------------------------------------------------------------------------
+|   1  | compute_crc.m      | LUT-based implementation. Compute CRC(A+B) = CRC(A) + CRC(B)  |
+--------------------------------------------------------------------------------------
+|   2  | compute_crc_fpga.m | LUT-based implementation. Compute CRC(A+B), by first compute A+B = C, then compute CRC(C)   |
+--------------------------------------------------------------------------------------
+|   3  | get_lut.m          | Compute pre-defined LUTs  |
+--------------------------------------------------------------------------------------
+|   4  | gen_table.m        | Writing pre-defined LUTs to file for FPGA implementation   |
+--------------------------------------------------------------------------------------
+|   5  | gen_hdl_in.m       | Generate simple golden I/O to test the FPGA core  |
+--------------------------------------------------------------------------------------
+|   6  | main.m             | Main program  |
+--------------------------------------------------------------------------------------
+
+## Look-Up-Table generation `get_lut.m`
 
 This section uses `crcgenerator` which is MATLAB toolbox CRC generator to compute CRC checksum of `256 inputs` (codeword) in range `[0, 255]`. The 256 results are stored in one LUT.
 

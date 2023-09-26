@@ -3,9 +3,9 @@
 % (nguyencanhtrung 'at' me 'dot' com)
 % 
 % Project   : LUT-based CRC implementation
-% Filename  : genLUT4FPGA
+% Filename  : gen_table
 % Date      : 2023-09-15 09:19:30
-% Last Modified : 2023-09-15 15:07:48
+% Last Modified : 2023-09-26 17:57:35
 % Modified By   : Nguyen Canh Trung
 % 
 % Description: 
@@ -47,5 +47,3 @@ write2file(f_crc16,  LUT_CRC16);
 % write2filehex(f_crc24B_hex, LUT_CRC24B);
 % write2filehex(f_crc24C_hex, LUT_CRC24C);
 % write2filehex(f_crc16_hex,  LUT_CRC16);
-
-

@@ -14,6 +14,12 @@
 % Date      	By	Comments
 % ----------	---	---------------------------------------------------------
 % ----------------------------------------------------------------------------
+fname_crc_padding_zeros = 'g_crc_padding_zeros.txt';
+fPath_crc_padding_zeros = fullfile(golden_repo, fname_crc_padding_zeros);
+
+fname_crc_result = 'g_crc_result.txt';
+fPath_crc_result = fullfile(golden_repo, fname_crc_result);    
+
   % Padding zeros
 g_crc_paddingzeros  = reshape(padded_blk4matlab, 128, []);
 g_crc_paddingzeros  = g_crc_paddingzeros';
