@@ -38,7 +38,7 @@ To use the MATLAB implementations in this repository, you need to have MATLAB in
 1. Clone this repository to your local machine:
 
    ```shell
-   git clone https://github.com/YourUsername/5G-NR-L1-MATLAB.git
+   git clone https://github.com/nguyencanhtrung/matlab-5GNR.git
     ```
 
 2. Open MATLAB and navigate to the cloned repository directory.
@@ -46,7 +46,7 @@ To use the MATLAB implementations in this repository, you need to have MATLAB in
 ### Usage
 You can use the provided MATLAB scripts and functions for various 5G NR L1 simulations and experiments. Simply include the relevant scripts/functions in your MATLAB project and customize them to suit your specific requirements.
 
-    ```matlab
+    ```shell
     % Example usage of a 5G NR L1 function
     result = my_5g_nr_l1_function(input_parameters);
     disp(result);
